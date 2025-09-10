@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { generateDecadeImage } from './services/geminiService';
 import PolaroidCard from './components/PolaroidCard';
 import { createAlbumPage } from './lib/albumUtils';
-import Footer from './components/Footer';
 
 const DECADES = ['1950s', '1960s', '1970s', '1980s', '1990s', '2000s'];
 
@@ -262,7 +261,7 @@ function App() {
     };
 
     return (
-        <main className="bg-black text-neutral-200 min-h-screen w-full flex flex-col items-center justify-center p-4 pb-24 overflow-hidden relative">
+        <main className="bg-black text-neutral-200 min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05]"></div>
             
             <div className="z-10 flex flex-col items-center justify-center w-full h-full flex-1 min-h-0">
@@ -429,7 +428,6 @@ function App() {
                     </>
                 )}
             </div>
-            <Footer />
         </main>
     );
 }
