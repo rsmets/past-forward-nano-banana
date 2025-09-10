@@ -22,7 +22,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
  * @returns The fallback prompt string.
  */
 function getFallbackPrompt(decade: string): string {
-    return `Create a photograph of the person in this image as if they were living in the ${decade}. The photograph should capture the distinct fashion, hairstyles, and overall atmosphere of that time period. Ensure the final image is a clear photograph that looks authentic to the era.`;
+    return `Create a photograph from this image as if it were taken in the ${decade}. The new photograph should capture the distinct fashion, hairstyles, background, and overall atmosphere of that time period. Ensure the final image is a clear photograph that looks authentic to the era.`;
 }
 
 /**

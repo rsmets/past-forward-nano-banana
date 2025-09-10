@@ -29,6 +29,8 @@ const GHOST_POLAROIDS_CONFIG = [
   { initial: { x: "100%", y: "150%", rotate: 10 }, transition: { delay: 0.3 } },
 ];
 
+const getPromptForDecade = (decade: string) => `Reimagine this photo to look like it was taken in the ${decade}. Modify everything in the image, including any people, clothing, hairstyles, and the background, to match the style and photo quality of that era. The output must be a clear, photorealistic image.`;
+
 
 type ImageStatus = 'pending' | 'done' | 'error';
 interface GeneratedImage {
@@ -164,7 +166,7 @@ function App() {
 
         const processDecade = async (decade: string) => {
             try {
-                const prompt = `Reimagine the person in this photo in the style of the ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that decade. The output must be a photorealistic image showing the person clearly.`;
+                const prompt = getPromptForDecade(decade);
                 const resultUrl = await generateDecadeImage(uploadedImage, prompt);
                 setGeneratedImages(prev => ({
                     ...prev,
@@ -213,7 +215,7 @@ function App() {
 
         // Call the generation service for the specific decade
         try {
-            const prompt = `Reimagine the person in this photo in the style of the ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that decade. The output must be a photorealistic image showing the person clearly.`;
+            const prompt = getPromptForDecade(decade);
             const resultUrl = await generateDecadeImage(uploadedImage, prompt);
             setGeneratedImages(prev => ({
                 ...prev,
