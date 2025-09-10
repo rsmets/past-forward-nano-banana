@@ -63,6 +63,7 @@ function App() {
     const [cameraError, setCameraError] = useState<string | null>(null);
     const dragAreaRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const isMobile = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
@@ -110,6 +111,24 @@ function App() {
         setCameraError(null);
         setUploadedImage(null); // Clear previous capture
         setAppState('camera-active');
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (e.target?.result) {
+                    setUploadedImage(e.target.result as string);
+                    setAppState('image-uploaded');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleSnapPhoto = () => {
@@ -291,20 +310,25 @@ function App() {
                             />
                         ))}
                         <motion.div
-                             initial={{ opacity: 0, scale: 0.8 }}
-                             animate={{ opacity: 1, scale: 1 }}
-                             transition={{ delay: 2, duration: 0.8, type: 'spring' }}
-                             className="flex flex-col items-center"
+                             initial={{ opacity: 0, y: 20 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             transition={{ delay: 2, duration: 0.8 }}
+                             className="flex flex-col sm:flex-row items-center gap-4"
                         >
-                            <button onClick={handleOpenCamera} className="cursor-pointer group transform hover:scale-105 transition-transform duration-300">
-                                 <PolaroidCard 
-                                     caption="Ready?"
-                                     status="done"
-                                 />
-                            </button>
-                            <p className="mt-8 font-permanent-marker text-neutral-500 text-center max-w-xs text-lg">
-                                Click the polaroid to open your camera and start your journey through time.
-                            </p>
+                             <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept="image/png, image/jpeg, image/webp"
+                                className="hidden"
+                                aria-hidden="true"
+                             />
+                             <button onClick={handleOpenCamera} className={primaryButtonClasses}>
+                                Take Photo
+                             </button>
+                             <button onClick={handleUploadClick} className={secondaryButtonClasses}>
+                                Upload Photo
+                             </button>
                         </motion.div>
                     </div>
                 )}
