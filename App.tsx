@@ -38,7 +38,7 @@ interface GeneratedImage {
     error?: string;
 }
 
-const primaryButtonClasses = "font-permanent-marker text-xl text-center text-black bg-yellow-400 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[2px_2px_0px_2px_rgba(0,0,0,0.2)]";
+const primaryButtonClasses = "font-permanent-marker text-xl text-center text-black bg-yellow-400 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[2px_2px_0px_2px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed";
 const secondaryButtonClasses = "font-permanent-marker text-xl text-center text-white bg-white/10 backdrop-blur-sm border-2 border-white/80 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:rotate-2 hover:bg-white hover:text-black";
 
 const useMediaQuery = (query: string) => {
@@ -60,21 +60,72 @@ function App() {
     const [generatedImages, setGeneratedImages] = useState<Record<string, GeneratedImage>>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isDownloading, setIsDownloading] = useState<boolean>(false);
-    const [appState, setAppState] = useState<'idle' | 'image-uploaded' | 'generating' | 'results-shown'>('idle');
+    const [appState, setAppState] = useState<'idle' | 'camera-active' | 'image-uploaded' | 'generating' | 'results-shown'>('idle');
+    const [cameraError, setCameraError] = useState<string | null>(null);
     const dragAreaRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const isMobile = useMediaQuery('(max-width: 768px)');
 
+    useEffect(() => {
+        let stream: MediaStream | null = null;
+        const videoElement = videoRef.current;
+    
+        const enableCamera = async () => {
+            if (appState === 'camera-active') {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user' },
+                        audio: false,
+                    });
+                    if (videoElement) {
+                        videoElement.srcObject = stream;
+                    }
+                } catch (err) {
+                    console.error("Error accessing camera:", err);
+                    let message = "Could not access camera. Please check browser permissions and try again.";
+                    if (err instanceof Error) {
+                        if (err.name === 'NotAllowedError') {
+                            message = 'Camera access was denied. Please allow camera access in your browser settings.';
+                        } else if (err.name === 'NotFoundError') {
+                             message = 'No camera found. Please ensure a camera is connected and enabled.';
+                        }
+                    }
+                    setCameraError(message);
+                }
+            }
+        };
+    
+        enableCamera();
+    
+        return () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (videoElement) {
+                videoElement.srcObject = null;
+            }
+        };
+    }, [appState]);
 
-    const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setUploadedImage(reader.result as string);
-                setAppState('image-uploaded');
-                setGeneratedImages({}); // Clear previous results
-            };
-            reader.readAsDataURL(file);
+    const handleOpenCamera = () => {
+        setCameraError(null);
+        setUploadedImage(null); // Clear previous capture
+        setAppState('camera-active');
+    };
+
+    const handleSnapPhoto = () => {
+        const video = videoRef.current;
+        if (!video) return;
+    
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        if (context) {
+            // Draw the raw (unmirrored) video frame to the canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            setUploadedImage(dataUrl);
         }
     };
 
@@ -246,18 +297,48 @@ function App() {
                              transition={{ delay: 2, duration: 0.8, type: 'spring' }}
                              className="flex flex-col items-center"
                         >
-                            <label htmlFor="file-upload" className="cursor-pointer group transform hover:scale-105 transition-transform duration-300">
+                            <button onClick={handleOpenCamera} className="cursor-pointer group transform hover:scale-105 transition-transform duration-300">
                                  <PolaroidCard 
-                                     caption="Click to begin"
+                                     caption="Ready?"
                                      status="done"
                                  />
-                            </label>
-                            <input id="file-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleImageUpload} />
+                            </button>
                             <p className="mt-8 font-permanent-marker text-neutral-500 text-center max-w-xs text-lg">
-                                Click the polaroid to upload your photo and start your journey through time.
+                                Click the polaroid to open your camera and start your journey through time.
                             </p>
                         </motion.div>
                     </div>
+                )}
+
+                {appState === 'camera-active' && (
+                    <motion.div 
+                        className="fixed inset-0 bg-black/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <div className="relative w-full max-w-2xl aspect-[4/3] md:aspect-video bg-neutral-800 rounded-lg overflow-hidden shadow-2xl">
+                            {uploadedImage ? (
+                                <img src={uploadedImage} alt="Your selfie" className="w-full h-full object-cover transform -scale-x-100" />
+                            ) : (
+                                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform -scale-x-100"></video>
+                            )}
+                            {cameraError && <div className="absolute inset-0 flex items-center justify-center bg-black/70"><p className="text-red-400 text-center p-4">{cameraError}</p></div>}
+                        </div>
+                        <div className="flex items-center gap-4 mt-6">
+                            {!uploadedImage ? (
+                                <>
+                                    <button onClick={() => setAppState('idle')} className={secondaryButtonClasses}>Cancel</button>
+                                    <button onClick={handleSnapPhoto} className={primaryButtonClasses} disabled={!!cameraError}>Snap Photo</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => setUploadedImage(null)} className={secondaryButtonClasses}>Retake</button>
+                                    <button onClick={() => setAppState('image-uploaded')} className={primaryButtonClasses}>Use Photo</button>
+                                </>
+                            )}
+                        </div>
+                    </motion.div>
                 )}
 
                 {appState === 'image-uploaded' && uploadedImage && (
@@ -268,8 +349,8 @@ function App() {
                             status="done"
                          />
                          <div className="flex items-center gap-4 mt-4">
-                            <button onClick={handleReset} className={secondaryButtonClasses}>
-                                Different Photo
+                            <button onClick={handleOpenCamera} className={secondaryButtonClasses}>
+                                Retake Photo
                             </button>
                             <button onClick={handleGenerateClick} className={primaryButtonClasses}>
                                 Generate
@@ -335,7 +416,7 @@ function App() {
                                     <button 
                                         onClick={handleDownloadAlbum} 
                                         disabled={isDownloading} 
-                                        className={`${primaryButtonClasses} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        className={`${primaryButtonClasses}`}
                                     >
                                         {isDownloading ? 'Creating Album...' : 'Download Album'}
                                     </button>
